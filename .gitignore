@@ -1,0 +1,42 @@
+# Ignore all
+*
+
+# Unignore the Makefile
+!Makefile
+
+# Unignore all files with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+# log files
+*.log
+
+# Backup files
+*bak
+*/bak
+bak/
+*/bak/
+*/bak/*
+
+# Object files
+*.o
+*.obj
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+*.so
+
+# Executables
+*.exe
+*.out
+
+# aim.cfg
+aim.cfg
+
+# Vim files
+#*.sw?
