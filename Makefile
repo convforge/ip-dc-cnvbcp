@@ -44,14 +44,14 @@ INC_DIR=
 # define this macro to override the default install directory
 # for the items defined in TARGET
 #     i.e.  for libraries, INSTALLDIR=../lib
-#      or   for binaries, INSTALLDIR=../ubin
+#      or   for binaries, INSTALLDIR=../bin
 # the defaults will produce output in the current directory
 INSTALLDIR=../../bin
 
 ###################################################################
 # define this macro to override the default intermediate (.o) 
 # directory for the items defined in SC_SRCS and C_SRCS
-#     i.e.  OBJDIR=../uobj
+#     i.e.  OBJDIR=../obj
 # the defaults will produce output in the current directory
 OBJDIR=.
 
