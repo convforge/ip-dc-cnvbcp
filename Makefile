@@ -60,8 +60,19 @@ OBJDIR=.
 # define the final desired target names
 TARGET=cnvbcp
 
+LOCAL_INSTALL=install_scripts
+LOCAL_UNINSTALL=uninstall_scripts
+
 ###################################################################
 # DO NOT REMOVE THIS include DIRECTIVE
 include /usr/local/conv/etc/make/conv_rules.mak
 ###################################################################
+
+SCRIPTS = dataload.sh
+
+install_scripts:
+	@for script in $(SCRIPTS); do echo "$(CP) -f $$script $(INSTALLDIR)" ; $(CP) -f $$script $(INSTALLDIR) ; done
+
+uninstall_scripts:
+	@for script in $(SCRIPTS); do echo "$(RMF) $(INSTALLDIR)/$$script "; $(RMF) $(INSTALLDIR)/$$script ; done
 
