@@ -50,6 +50,7 @@ typedef struct _cnvbcp_buffer_st
    int            malloc_length;
    int            is_nullable;
    int            date;
+   int            scale;
    char          *format;
    int            source_type;
    unsigned char *data;
@@ -134,47 +135,47 @@ void wipearg(char *arg);
 int
 main(int argc, char *argv[])
 {
-	int          ret = CNVBCP_SUCCESS;
-	extern char *optarg;
-	extern int   optind;
-	int          c;
+   int          ret = CNVBCP_SUCCESS;
+   extern char *optarg;
+   extern int   optind;
+   int          c;
    char         tmpstr[4096];
-	CNVBCP       cnvbcp;
+   CNVBCP       cnvbcp;
 
-	memset(&cnvbcp, 0, sizeof(cnvbcp));
+   memset(&cnvbcp, 0, sizeof(cnvbcp));
    cnvbcp.logfp   = stderr;
    cnvbcp.maxbad  = 20;
    cnvbcp.lastrow = (size_t)-1;;
 
-	while((c = getopt(argc, argv, "a:B:b:c:Dd:F:L:l:o:Pp:s:t:Vx")) != EOF)
-	{
-		switch(c)
-		{
-			case 'a': cnvbcp.arraysize      = atoi(optarg);   break; // insert batch size
-			case 'B': cnvbcp.maxbad         = atoi(optarg);   break; // number of bad records to allow before exit
-			case 'b': cnvbcp.badfile        = strdup(optarg); break; // bad record file name
-			case 'c': cnvbcp.conn           = strdup(optarg); wipearg(optarg); break; // connect string
-			case 'D': cnvbcp.reformat_dates = CNVBCP_TRUE;    break; // reformat dates for compatibility
-			case 'd': cnvbcp.datfile        = strdup(optarg); break; // dat file name
-			case 'F': cnvbcp.firstrow       = atoi(optarg);   break; // first row in file to send
-			case 'L': cnvbcp.lastrow        = atoi(optarg);   break; // last row in file to send
-			case 'l': cnvbcp.logfile        = strdup(optarg); break; // log file name
-			case 'o': cnvbcp.outfile        = strdup(optarg); break; // out file name
-			case 'P': cnvbcp.progressbar    = CNVBCP_TRUE; cnvbcp.verbose = CNVBCP_FALSE; break; // show progress bar
-			case 'p': cnvbcp.packetsize     = atoi(optarg);   break; // data transmission packet size
-			case 's': cnvbcp.schema         = strdup(optarg); break; // schema name
-			case 't': cnvbcp.table          = strdup(optarg); break; // table name
-			case 'V': cnvbcp.verbose        = CNVBCP_TRUE; cnvbcp.progressbar = CNVBCP_FALSE; break; // bcp style progress
-			case 'x': cnvbcp.truncate       = CNVBCP_TRUE;    break; // truncate table before load
-		}
-	}
+   while((c = getopt(argc, argv, "a:B:b:c:Dd:F:L:l:o:Pp:s:t:Vx")) != EOF)
+   {
+      switch(c)
+      {
+         case 'a': cnvbcp.arraysize      = atoi(optarg);   break; // insert batch size
+         case 'B': cnvbcp.maxbad         = atoi(optarg);   break; // number of bad records to allow before exit
+         case 'b': cnvbcp.badfile        = strdup(optarg); break; // bad record file name
+         case 'c': cnvbcp.conn           = strdup(optarg); wipearg(optarg); break; // connect string
+         case 'D': cnvbcp.reformat_dates = CNVBCP_TRUE;    break; // reformat dates for compatibility
+         case 'd': cnvbcp.datfile        = strdup(optarg); break; // dat file name
+         case 'F': cnvbcp.firstrow       = atoi(optarg);   break; // first row in file to send
+         case 'L': cnvbcp.lastrow        = atoi(optarg);   break; // last row in file to send
+         case 'l': cnvbcp.logfile        = strdup(optarg); break; // log file name
+         case 'o': cnvbcp.outfile        = strdup(optarg); break; // out file name
+         case 'P': cnvbcp.progressbar    = CNVBCP_TRUE; cnvbcp.verbose = CNVBCP_FALSE; break; // show progress bar
+         case 'p': cnvbcp.packetsize     = atoi(optarg);   break; // data transmission packet size
+         case 's': cnvbcp.schema         = strdup(optarg); break; // schema name
+         case 't': cnvbcp.table          = strdup(optarg); break; // table name
+         case 'V': cnvbcp.verbose        = CNVBCP_TRUE; cnvbcp.progressbar = CNVBCP_FALSE; break; // bcp style progress
+         case 'x': cnvbcp.truncate       = CNVBCP_TRUE;    break; // truncate table before load
+      }
+   }
 
    // set reasonable defaults
-	if(cnvbcp.arraysize <= 0)
-		cnvbcp.arraysize = 1000;
+   if(cnvbcp.arraysize <= 0)
+      cnvbcp.arraysize = 1000;
 
-	if(cnvbcp.packetsize <= 0)
-		cnvbcp.packetsize = 8192;
+   if(cnvbcp.packetsize <= 0)
+      cnvbcp.packetsize = 8192;
 
    if((argc == 1)               ||
       ((argc - optind)  > 0)    ||
@@ -189,24 +190,24 @@ main(int argc, char *argv[])
       ret = CNVBCP_FAILURE;
    }
 
-	if(ret == CNVBCP_SUCCESS)
-	{
-		if(cnvbcp.logfile != NULL)
-		{
-			if((cnvbcp.logfp = fopen(cnvbcp.logfile, "w")) == NULL)
-			{
-				cnvbcp.logfp = stderr;
-				fprintf(cnvbcp.logfp, "Error opening logfile '%s'.\n", cnvbcp.logfile);
-			}
-		}
-		else
-		{
-			cnvbcp.logfp = stderr;
-		}
+   if(ret == CNVBCP_SUCCESS)
+   {
+      if(cnvbcp.logfile != NULL)
+      {
+         if((cnvbcp.logfp = fopen(cnvbcp.logfile, "w")) == NULL)
+         {
+            cnvbcp.logfp = stderr;
+            fprintf(cnvbcp.logfp, "Error opening logfile '%s'.\n", cnvbcp.logfile);
+         }
+      }
+      else
+      {
+         cnvbcp.logfp = stderr;
+      }
 
       // set file pointer for error and message handlers
       LOGFP = cnvbcp.logfp;
-	}
+   }
 
    // don't do anything without credentials
    if(ret == CNVBCP_SUCCESS)
@@ -229,7 +230,7 @@ main(int argc, char *argv[])
    }
 
    // parse out file
-	if(ret == CNVBCP_SUCCESS)
+   if(ret == CNVBCP_SUCCESS)
       ret = cnvbcp_parse_outfile(&cnvbcp);
 
    // open and check dat file
@@ -246,24 +247,24 @@ main(int argc, char *argv[])
    }
 
    // connect to the database
-	if(ret == CNVBCP_SUCCESS)
-		ret = cnvbcp_connect(&cnvbcp);
+   if(ret == CNVBCP_SUCCESS)
+      ret = cnvbcp_connect(&cnvbcp);
 
    // set options
    if(ret == CNVBCP_SUCCESS)
       ret = cnvbcp_set_options(&cnvbcp);
 
    // initialize bcp module
-	if(ret == CNVBCP_SUCCESS)
-		ret = cnvbcp_init_bcp(&cnvbcp);
+   if(ret == CNVBCP_SUCCESS)
+      ret = cnvbcp_init_bcp(&cnvbcp);
 
    // remove columns not being processed
-	if(ret == CNVBCP_SUCCESS)
-		ret = cnvbcp_remove_unused_columns(&cnvbcp);
+   if(ret == CNVBCP_SUCCESS)
+      ret = cnvbcp_remove_unused_columns(&cnvbcp);
 
    // get table description from database
-	if(ret == CNVBCP_SUCCESS)
-		ret = cnvbcp_get_table_info(&cnvbcp);
+   if(ret == CNVBCP_SUCCESS)
+      ret = cnvbcp_get_table_info(&cnvbcp);
 
    // set BCPKEEPIDENTITY if an identity column in the table
    // is being loaded from the data file
@@ -272,14 +273,14 @@ main(int argc, char *argv[])
 
    // cross reference outfile to database
    // and create buffers to bind to transaction
-	if(ret == CNVBCP_SUCCESS)
-		ret = cnvbcp_create_buffers(&cnvbcp);
+   if(ret == CNVBCP_SUCCESS)
+      ret = cnvbcp_create_buffers(&cnvbcp);
 
-   #ifdef YET
+#ifdef YET
    // set up default bindings for columns that will not be loaded from this file
-	if(ret == CNVBCP_SUCCESS)
-		ret = cnvbcp_bind_nonloading_columns(&cnvbcp);
-   #endif
+   if(ret == CNVBCP_SUCCESS)
+      ret = cnvbcp_bind_nonloading_columns(&cnvbcp);
+#endif
 
    // everything is set up, out file is parsed, dat file is opened and checked,
    // table is described and data buffers are allocated.
@@ -288,10 +289,10 @@ main(int argc, char *argv[])
       ret = cnvbcp_truncate_table(&cnvbcp);
 
    // do the deed
-	if(ret == CNVBCP_SUCCESS)
+   if(ret == CNVBCP_SUCCESS)
       ret = cnvbcp_load_data(&cnvbcp);
 
-	return(ret);
+   return(ret);
 }
 
 
@@ -323,7 +324,7 @@ print_usage(char *progname)
    printf("   database.  If CNVBCP_PSWD is not set and a connect string is not specified\n");
    printf("   on the command line (discouraged) you will be prompted for a connect string.\n");
    printf("\n");
-	printf("   A connect string must contain at least \"DSN=[dsn];UID=[uid];PWD=[pwd];\"\n");
+   printf("   A connect string must contain at least \"DSN=[dsn];UID=[uid];PWD=[pwd];\"\n");
    printf("\n");
 }
 
@@ -425,14 +426,14 @@ cnvbcp_open_datfile(CNVBCP *cnvbcp)
 
    // Determine the data file size
    if(ret == CNVBCP_SUCCESS &&
-         fstat(fileno(cnvbcp->datfp), &statbuf) != 0)
+      fstat(fileno(cnvbcp->datfp), &statbuf) != 0)
    {
       fprintf(cnvbcp->logfp, "%s could not be fstat'd.\n", cnvbcp->datfile);
       ret = CNVBCP_FAILURE;
    }
 
    if(ret == CNVBCP_SUCCESS &&
-         statbuf.st_size == 0)
+      statbuf.st_size == 0)
    {
       fprintf(cnvbcp->logfp, "%s is empty.\n", cnvbcp->datfile);
       ret = CNVBCP_FAILURE;
@@ -443,7 +444,7 @@ cnvbcp_open_datfile(CNVBCP *cnvbcp)
    numrecs  = filesize / reclen;
 
    if(ret == CNVBCP_SUCCESS &&
-         (numrecs * reclen) != filesize)
+      (numrecs * reclen) != filesize)
    {
       fprintf(cnvbcp->logfp, "%s contains fractional rows.\n", cnvbcp->datfile);
       ret = CNVBCP_FAILURE;
@@ -483,7 +484,7 @@ cnvbcp_connect(CNVBCP *cnvbcp)
    // Allocate and initialize the LOGINREC structure to be used
    // to open a connection to SQL Server.
    if(ret == CNVBCP_SUCCESS &&
-         (login = dblogin()) == NULL)
+      (login = dblogin()) == NULL)
    {
       ret = CNVBCP_FAILURE;
    }
@@ -522,7 +523,7 @@ cnvbcp_connect(CNVBCP *cnvbcp)
 
 
 
-   int
+int
 cnvbcp_set_options(CNVBCP *cnvbcp)
 {
    int ret = CNVBCP_SUCCESS;
@@ -535,35 +536,35 @@ cnvbcp_set_options(CNVBCP *cnvbcp)
    }
 
    if(ret == CNVBCP_SUCCESS &&
-         dbcmd(cnvbcp->dbproc, "set ansi_warnings on;") == FAIL)
+      dbcmd(cnvbcp->dbproc, "set ansi_warnings on;") == FAIL)
    {
       fprintf(stderr, "setoptions() failed preparing ansi_warnings\n");
       ret = CNVBCP_FAILURE;
    }
 
    if(ret == CNVBCP_SUCCESS &&
-         dbcmd(cnvbcp->dbproc, "set ansi_padding on;") == FAIL)
+      dbcmd(cnvbcp->dbproc, "set ansi_padding on;") == FAIL)
    {
       fprintf(stderr, "setoptions() failed preparing ansi_padding\n");
       ret = CNVBCP_FAILURE;
    }
 
    if(ret == CNVBCP_SUCCESS &&
-         dbcmd(cnvbcp->dbproc, "set ansi_nulls on;") == FAIL)
+      dbcmd(cnvbcp->dbproc, "set ansi_nulls on;") == FAIL)
    {
       fprintf(stderr, "setoptions() failed preparing ansi_nulls\n");
       ret = CNVBCP_FAILURE;
    }
 
    if(ret == CNVBCP_SUCCESS &&
-         dbcmd(cnvbcp->dbproc, "set concat_null_yields_null on;") == FAIL)
+      dbcmd(cnvbcp->dbproc, "set concat_null_yields_null on;") == FAIL)
    {
       fprintf(stderr, "setoptions() failed preparing concat_null_yields_null\n");
       ret = CNVBCP_FAILURE;
    }
 
    if(ret == CNVBCP_SUCCESS &&
-         dbsqlexec(cnvbcp->dbproc) == FAIL)
+      dbsqlexec(cnvbcp->dbproc) == FAIL)
    {
       fprintf(stderr, "setoptions() failed sending options\n");
       ret = CNVBCP_FAILURE;
@@ -699,7 +700,7 @@ cnvbcp_get_table_info(CNVBCP *cnvbcp)
 
    if(ret == CNVBCP_SUCCESS)
    {
-   // printf("Allocated %zd columns\n", cnvbcp->ncolumns+1);
+      // printf("Allocated %zd columns\n", cnvbcp->ncolumns+1);
 
       for(i=1; i<=ncolumns_actual; i++)
       {
@@ -900,9 +901,21 @@ cnvbcp_create_buffers(CNVBCP *cnvbcp)
                cnvbcp->buffer[f].dlen = -1;
                break;
             case DOP_DOUBLE:
-               cnvbcp->buffer[f].type = SYBFLT8;
-               cnvbcp->buffer[f].plen = 0;
-               cnvbcp->buffer[f].dlen = -1;
+               if(cnvbcp->p->field[f].has_scale == DOP_TRUE)
+               {
+                  // use scale information to sprintf the value to a character string
+                  // before sending to the db
+                  cnvbcp->buffer[f].type  = SYBCHAR;
+                  cnvbcp->buffer[f].plen  = 0;
+                  cnvbcp->buffer[f].dlen  = 128;
+                  cnvbcp->buffer[f].scale = cnvbcp->p->field[f].scale;
+               }
+               else
+               {
+                  cnvbcp->buffer[f].type = SYBFLT8;
+                  cnvbcp->buffer[f].plen = 0;
+                  cnvbcp->buffer[f].dlen = -1;
+               }
                break;
          }
 
@@ -969,14 +982,14 @@ cnvbcp_bind_nonloading_columns(CNVBCP *cnvbcp)
          }
 
          if(bcp_bind(cnvbcp->dbproc, // dbproc       database connection info
-                  (BYTE *)"",        // varaddr      address of host variable
-                  0,                 // prefixlen    size of length prefix at the beginning of varaddr, 0 for fixedlength datatypes.
-                  dlen,              // varlen       number of bytes in varaddr.  Zero for NULL, -1 for fixed-length datatypes.
-                  NULL,              // terminator   byte sequence that marks the end of the data in varaddr
-                  0,                 // termlen      length of terminator
-                  SYBCHAR,           // vartype      datatype of the host variable
-                  c)                 // table_column column nuber, starting at 1, in the table.
-               == FAIL)
+                     (BYTE *)"",        // varaddr      address of host variable
+                     0,                 // prefixlen    size of length prefix at the beginning of varaddr, 0 for fixedlength datatypes.
+                     dlen,              // varlen       number of bytes in varaddr.  Zero for NULL, -1 for fixed-length datatypes.
+                     NULL,              // terminator   byte sequence that marks the end of the data in varaddr
+                     0,                 // termlen      length of terminator
+                     SYBCHAR,           // vartype      datatype of the host variable
+                     c)                 // table_column column nuber, starting at 1, in the table.
+            == FAIL)
          {
             fprintf(cnvbcp->logfp, "Error binding unused column %ld.\n", c);
             ret = CNVBCP_FAILURE;
@@ -997,7 +1010,7 @@ cnvbcp_truncate_table(CNVBCP *cnvbcp)
    char      statement[256];
 
    CNVBCP c;  // local context for second session so as not to disturb
-              // the BCP mode already set up in the existing session
+   // the BCP mode already set up in the existing session
 
    if(cnvbcp->truncate == CNVBCP_TRUE)
    {
@@ -1026,7 +1039,7 @@ cnvbcp_truncate_table(CNVBCP *cnvbcp)
 
       // send the truncate statement to the database
       if(ret == CNVBCP_SUCCESS &&
-            dbcmd(c.dbproc, statement) == FAIL)
+         dbcmd(c.dbproc, statement) == FAIL)
       {
          fprintf(c.logfp, "dbcmd for truncate statement failed\n");
          ret = CNVBCP_FAILURE;
@@ -1034,7 +1047,7 @@ cnvbcp_truncate_table(CNVBCP *cnvbcp)
 
       // execute the truncate statement
       if(ret == CNVBCP_SUCCESS &&
-            dbsqlexec(c.dbproc) == FAIL)
+         dbsqlexec(c.dbproc) == FAIL)
       {
          fprintf(c.logfp, "dbsqlexec truncate statement failed\n");
          ret = CNVBCP_FAILURE;
@@ -1042,7 +1055,7 @@ cnvbcp_truncate_table(CNVBCP *cnvbcp)
 
       // receive results
       if(ret == CNVBCP_SUCCESS &&
-            dbresults(c.dbproc) == FAIL)
+         dbresults(c.dbproc) == FAIL)
       {
          fprintf(c.logfp, "Error in dbresults for truncate statement\n");
          ret = CNVBCP_FAILURE;
@@ -1073,6 +1086,7 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
    int            ret = CNVBCP_SUCCESS;
    int            dlen, nullindicator;
    int            batchcount = 0;
+   int            length_already_set = CNVBCP_FALSE;
    size_t         b, r;
    CNVBCP_BUFFER *buf = NULL;
    struct cnv_tm  tm;
@@ -1084,17 +1098,17 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
       buf = &cnvbcp->buffer[b];
 
       if(bcp_bind(cnvbcp->dbproc, // dbproc       database connection info
-               buf->data,         // varaddr      address of host variable
-               buf->plen,         // prefixlen    size of length prefix at the beginning of varaddr, 0 for fixed-length datatypes.
-               buf->dlen,         // varlen       number of bytes of data in varaddr.  Zero for NULL, -1 for fixed-length datatypes.
-               NULL,              // terminator   byte sequence that marks the end of the data in varaddr
-               0,                 // termlen      length of terminator
-               buf->type,         // vartype      datatype of the host variable
-               buf->column)       // table_column column nuber, starting at 1, in the table.
-            == FAIL)
+                  buf->data,         // varaddr      address of host variable
+                  buf->plen,         // prefixlen    size of length prefix at the beginning of varaddr, 0 for fixed-length datatypes.
+                  buf->dlen,         // varlen       number of bytes of data in varaddr.  Zero for NULL, -1 for fixed-length datatypes.
+                  NULL,              // terminator   byte sequence that marks the end of the data in varaddr
+                  0,                 // termlen      length of terminator
+                  buf->type,         // vartype      datatype of the host variable
+                  buf->column)       // table_column column nuber, starting at 1, in the table.
+         == FAIL)
       {
-            fprintf(cnvbcp->logfp, "Error binding column %ld.\n", b);
-            ret = CNVBCP_FAILURE;
+         fprintf(cnvbcp->logfp, "Error binding column %ld.\n", b);
+         ret = CNVBCP_FAILURE;
       }
    }
 
@@ -1119,10 +1133,12 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
    // loop over all rows to be sent from the data file
    for(r=cnvbcp->firstrow; ret == CNVBCP_SUCCESS && r<=cnvbcp->lastrow; r++)
    {
-  // printf("\n\n\n");
+      // printf("\n\n\n");
       // read a set of buffers from the input file
       for(b=0; ret == CNVBCP_SUCCESS && b<cnvbcp->nbuffers; b++)
       {
+         length_already_set = CNVBCP_FALSE;
+
          // make things easier to reference
          buf = &cnvbcp->buffer[b];
 
@@ -1140,17 +1156,52 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
          // read the data
          if(ret == CNVBCP_SUCCESS)
          {
-            if(fread(buf->data, 1, buf->length, cnvbcp->datfp) != buf->length)
+            if(buf->source_type == DOP_DOUBLE && buf->type == SYBCHAR)
             {
-               fprintf(cnvbcp->logfp, "Error reading data at row %ld column %ld.\n", r, b);
-               ret = CNVBCP_FAILURE;
+               // read a double from the data file and print it to the buffer as a character string
+               double tmp_double;
+               if(fread(&tmp_double, 1, sizeof(tmp_double), cnvbcp->datfp) != sizeof(tmp_double))
+               {
+                  fprintf(cnvbcp->logfp, "Error reading data at row %ld column %ld.\n", r, b);
+                  ret = CNVBCP_FAILURE;
+               }
+               else
+               {
+                  if(buf->is_nullable && nullindicator != 'N')
+                  {
+                     dlen = 0;
+                     buf->data[0] = '\0';
+                  }
+                  else
+                  {
+                     // use sprintf to convert the binary to a string getting the new data length
+                     // (the number of characters written) into dlen
+                     dlen = sprintf((char *)buf->data, "%.*f", buf->scale, tmp_double);
+                  }
+
+                  // update the data length for this column
+                  if(bcp_collen(cnvbcp->dbproc, dlen, buf->column) == FAIL)
+                  {
+                     fprintf(cnvbcp->logfp, "Error setting data length at row %ld column %ld.\n", r, b);
+                     ret = CNVBCP_FAILURE;
+                  }
+                  length_already_set = CNVBCP_TRUE;
+               }
             }
-           // printf("Read %s %d bytes [%c] \n", cnvbcp->p->field[b].name, buf->length, buf->is_nullable ? nullindicator : ' ');
-           // cnvbcp_dump_buf((char *)buf->data, buf->length);
+            else
+            {
+               if(fread(buf->data, 1, buf->length, cnvbcp->datfp) != buf->length)
+               {
+                  fprintf(cnvbcp->logfp, "Error reading data at row %ld column %ld.\n", r, b);
+                  ret = CNVBCP_FAILURE;
+               }
+            }
+            // printf("Read %s %d bytes [%c] \n", cnvbcp->p->field[b].name, buf->length, buf->is_nullable ? nullindicator : ' ');
+            // cnvbcp_dump_buf((char *)buf->data, buf->length);
          }
 
          // hack the length if the column is nullable
-         if(buf->is_nullable)
+         if(buf->is_nullable && length_already_set == CNVBCP_FALSE)
          {
             dlen = buf->dlen;
             if(nullindicator != 'N')
@@ -1514,8 +1565,8 @@ cnvbcp_get_database(CNVBCP *cnvbcp)
                      break;
 
                   if(strncmp(tmpstr, "Database ",  9) == 0 ||
-                        strncmp(tmpstr, "Database\t", 9) == 0 ||
-                        strncmp(tmpstr, "Database=",  9) == 0)
+                     strncmp(tmpstr, "Database\t", 9) == 0 ||
+                     strncmp(tmpstr, "Database=",  9) == 0)
                   {
                      // right trim any whitespace
                      tmpstr = &instr[strlen(instr)-1];
