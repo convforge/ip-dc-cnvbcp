@@ -21,7 +21,7 @@ int bcp_numcols(DBPROCESS * dbproc);
 
 #include "progressbar.h"
 #include "DOParser.h"
-#include "date.h"
+#include "cnv_date.h"
 
 
 
