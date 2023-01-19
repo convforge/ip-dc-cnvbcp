@@ -42,8 +42,8 @@ C_SRCS=cnvbcp.c
 # add any additional libraries to link (-llibname) to this macro
 # EXTRA_LIBS=
 # EXTRA_DEBUG_LIBS=
-EXTRA_LIBS=-lDOParser -lprogressbar -lcnv_date -lsybdb
-EXTRA_DEBUG_LIBS=-lDOParser_dbg -lprogressbar_dbg -lcnv_date_dbg -lsybdb
+EXTRA_LIBS=-lDOParser -lprogressbar -lcnvdate -lsybdb
+EXTRA_DEBUG_LIBS=-lDOParser_dbg -lprogressbar_dbg -lcnvdate_dbg -lsybdb
 
 ###################################################################
 # add any additional include directories (-Idir) to this macro
