@@ -1083,13 +1083,13 @@ cnvbcp_truncate_table(CNVBCP *cnvbcp)
 int
 cnvbcp_load_data(CNVBCP *cnvbcp)
 {
-   int            ret = CNVBCP_SUCCESS;
-   int            dlen, nullindicator;
-   int            batchcount = 0;
-   int            length_already_set = CNVBCP_FALSE;
-   size_t         b, r;
-   CNVBCP_BUFFER *buf = NULL;
-   struct cnv_tm  tm;
+   int                ret = CNVBCP_SUCCESS;
+   int                dlen, nullindicator;
+   int                batchcount = 0;
+   int                length_already_set = CNVBCP_FALSE;
+   size_t             b, r;
+   CNVBCP_BUFFER     *buf = NULL;
+   struct _cnv_dtetm  tm;
 
    // call bcp_bind() for each column that will be loaded
    for(b=0; ret == CNVBCP_SUCCESS && b<cnvbcp->nbuffers; b++)
@@ -1220,8 +1220,8 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
          if(buf->date == CNVBCP_TRUE && nullindicator == 'N' && buf->format != NULL)
          {
             buf->data[buf->length] = '\0';
-            cnv_strptime((const char *)buf->data, buf->format, &tm);
-            cnv_strftime((char *)buf->data, buf->malloc_length, "%F %T", &tm);
+            dte_strptime((const char *)buf->data, buf->format, &tm);
+            dte_strftime((char *)buf->data, buf->malloc_length, "%F %T", &tm);
          }
       }
 
