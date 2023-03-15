@@ -3,9 +3,10 @@
 ###############################################################################
 # MODIFICATIONS LOG:                                                          #
 #-----------------------------------------------------------------------------#
-# Date:    DBA:       Description:                                            #
+# Date:    DBA:             Description:                                      #
 #-----------------------------------------------------------------------------#
-#                                                                             #
+# 2023/03/15  d ragatz      Add functionality to run delete sql instead of    #
+#                           truncate table                                    #
 ###############################################################################
 
 
@@ -58,8 +59,8 @@ start_table()
        
 		# truncate if desired
 		if [ $3 = "y" ]; then
-			trunc_table $1 $5 $7 >> ${logs}/$1.dataload.log
-			trunc_table $1 $5 $7
+			echo trunc_table $1 $5 $7 > ${logs}/$1.dataload.log
+			trunc_table $1 $5 $7 >> ${logs}/$1.dataload.log 2>&1
 			if [ $? -ne 0 ]; then
 				echo "ERROR:   trunc_table ${5}.${1} ${7}, ${logs}/$1.dataload.log"
 				return 1
@@ -78,6 +79,7 @@ start_table()
 			schema="-s ${5}"
 		fi
 
+		# if truncate flag is set, check for delete sql
 		if [[ $3 == "y" ]]; then
 			if [[ $7 == "-" ]]; then
 				truncate="-x"
