@@ -137,7 +137,7 @@ trunc_table ()
 	if [[ $3 != "-" ]]; then
 		sql_file=${SYNPATH}/$3
 		if [[ -s $sql_file ]]; then
-			cnvsqlcmd -i $sql_file
+			cnvsqlcmd -e -i $sql_file
 		else
 			echo "ERROR:  sql file [$sql_file] doesn't exist or is empty"
 			return 1
@@ -146,7 +146,7 @@ trunc_table ()
 		if [ $2 = "-" ]; then
 			schema=""
 		else
-			schema=$2.
+			schema=${2}.
 		fi
 
 		#This is ok because schema return dbo.
