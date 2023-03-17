@@ -3,9 +3,10 @@
 ###############################################################################
 # MODIFICATIONS LOG:                                                          #
 #-----------------------------------------------------------------------------#
-# Date:    DBA:       Description:                                            #
+# Date:    DBA:             Description:                                      #
 #-----------------------------------------------------------------------------#
-#                                                                             #
+# 2023/03/15  d ragatz      Add functionality to run delete sql instead of    #
+#                           truncate table                                    #
 ###############################################################################
 
 
@@ -27,6 +28,7 @@ print_usage ()
 #        y = perform direct load
 #   $5 - Specifies the to schema name for the table
 #   $6 - Specifies the from schema
+#   $7 - Specifies SQL for table delete
 #
 #   ENVIRONMENT VARIABLES:
 #		TO_PSWD - connection string to use for database connection
@@ -57,28 +59,38 @@ start_table()
        
 		# truncate if desired
 		if [ $3 = "y" ]; then
-         trunc_table $1 $5 >> ${logs}/$1.dataload.log
-			trunc_table $1 $5
-         if [ $? -ne 0 ]; then
-				echo "ERROR:   trunc_table ${5}.${1}, ${logs}/$1.dataload.log"
+			echo trunc_table $1 $5 $7 > ${logs}/$1.dataload.log
+			trunc_table $1 $5 $7 >> ${logs}/$1.dataload.log 2>&1
+			if [ $? -ne 0 ]; then
+				echo "ERROR:   trunc_table ${5}.${1} ${7}, ${logs}/$1.dataload.log"
 				return 1
 			fi
 		fi
 	else
-      table="$1"
+		table="$1"
 		outfile="${outs}/$1.out"
 		datfile="${data}/$1.dat"
 		logfile="${logs}/$1.log"
 		badfile="${data}/$1.bad"
-      array_size="$2"
+		array_size="$2"
 		if [ $5 = "-" ]; then
 			schema=""
 		else
 			schema="-s ${5}"
 		fi
 
-		if [ $3 = "y" ]; then
-			truncate="-x"
+		# if truncate flag is set, check for delete sql
+		if [[ $3 == "y" ]]; then
+			if [[ $7 == "-" ]]; then
+				truncate="-x"
+			else
+				truncate=""
+				trunc_table $1 $5 $7
+				if [ $? -ne 0 ]; then
+					echo "ERROR:   trunc_table ${5}.${1} ${7}, ${logs}/$1.dataload.log"
+					return 1
+				fi
+			fi
 		else
 			truncate=""
 		fi
@@ -116,23 +128,34 @@ start_table()
 #
 #	$1 - Table Name
 #	$2 - Table owner to be truncated
+#	$3 - SQL to delete table
 #
 ##############################################################################
 trunc_table ()
-
 {
-   if [ $2 = "-" ]; then
-		schema=""
+	# process delete table sql if it exists
+	if [[ $3 != "-" ]]; then
+		sql_file=${SYNPATH}/$3
+		if [[ -s $sql_file ]]; then
+			cnvsqlcmd -e -i $sql_file
+		else
+			echo "ERROR:  sql file [$sql_file] doesn't exist or is empty"
+			return 1
+		fi
 	else
-		schema=$2.
-	fi
+		if [ $2 = "-" ]; then
+			schema=""
+		else
+			schema=${2}.
+		fi
 
-   #This is ok because schema return dbo.
-   cnvsqlcmd -Q "truncate table ${schema}${1};"
+		#This is ok because schema return dbo.
+		cnvsqlcmd -Q "truncate table ${schema}${1};"
+	fi
 
 	trunc_table_status=$?
 	if [ $trunc_table_status -ne 0 ]; then
-	   echo ERROR:   error writing to $tmpfile in trunc_table
+	   echo ERROR:   error running SQL statement 
 	   return $trunc_table_status
 	fi
 
@@ -227,7 +250,6 @@ process_control_file()
 	ctlfile=$1;
 	let num_errs=0;
 
-
 	egrep -v '^#|^$' ${ctlfile} |
 		while read i ; do
 			# put the line into an array
@@ -238,8 +260,11 @@ process_control_file()
 				# set up all of the variables from the control file
 				table_name=${tbl_desc[0]}
 				array_size=${tbl_desc[1]}
-	         from_owner=${tbl_desc[7]}
+				delete_ctl=${tbl_desc[6]}
+				from_owner=${tbl_desc[7]}
 				to_owner=${tbl_desc[8]}
+
+				echo $delete_ctl
 
 				# If the user entered a dash, this means that
 				# the table SHOULD NOT be imported.  By leaving
@@ -257,7 +282,7 @@ process_control_file()
 
 				direct_load=${tbl_desc[4]}
 
-				start_table $table_name $array_size $trunc_before $direct_load $to_owner $from_owner 
+				start_table $table_name $array_size $trunc_before $direct_load $to_owner $from_owner $delete_ctl
 
 				# check the status
 				if [ $? -ne 0 ]; then
