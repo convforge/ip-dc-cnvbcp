@@ -137,9 +137,10 @@ trunc_table ()
 	if [[ $3 != "-" ]]; then
 		sql_file=${SYNPATH}/$3
 		if [[ -s $sql_file ]]; then
-			cnvsqlcmd -e -i $sql_file
+			echo "cnvsqlcmd -b -e -i $sql_file -p"
+			cnvsqlcmd -b -e -i $sql_file -p
 		else
-			echo "ERROR:  sql file [$sql_file] doesn't exist or is empty"
+			echo "ERROR: sql file [$sql_file] doesn't exist or is empty"
 			return 1
 		fi
 	else
