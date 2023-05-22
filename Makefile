@@ -69,7 +69,7 @@ INSTALLDIR=../../bin
 # this macro MUST be defined
 # define the final desired target names
 # TARGET=
-TARGET=dcnvbcp
+TARGET=cnvbcp
 
 ###################################################################
 # define this macro for libraries supplying header files
