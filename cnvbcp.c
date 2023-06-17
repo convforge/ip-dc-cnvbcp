@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <iconv.h>
 #include <limits.h>
 #include <setjmp.h>
 #include <stdio.h>
@@ -11,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <time.h>
+#include <wchar.h>
 
 #include <sybfront.h>
 #include <sybdb.h>
@@ -870,6 +872,7 @@ cnvbcp_create_buffers(CNVBCP *cnvbcp)
             case DOP_CHAR:
             case DOP_CLOB:
             case DOP_RAW:
+            case DOP_WCHAR:
                cnvbcp->buffer[b].type = SYBCHAR;
                cnvbcp->buffer[b].plen = 0;
                cnvbcp->buffer[b].dlen = cnvbcp->buffer[b].length;
@@ -906,6 +909,11 @@ cnvbcp_create_buffers(CNVBCP *cnvbcp)
                   else
                      cnvbcp->buffer[b].format = strdup(cnvbcp->p->field[f].format);
                }
+               break;
+            case DOP_FLOAT:
+               cnvbcp->buffer[b].type = SYBREAL;
+               cnvbcp->buffer[b].plen = 0;
+               cnvbcp->buffer[b].dlen = -1;
                break;
             case DOP_BIGINT:
             case DOP_BIT:
@@ -955,7 +963,7 @@ cnvbcp_create_buffers(CNVBCP *cnvbcp)
          // allocate malloc length + 2 bytes of space for the prefix and field data
          if((cnvbcp->buffer[b].data = (unsigned char *)malloc(cnvbcp->buffer[b].malloc_length)) == NULL)
          {
-            fprintf(cnvbcp->logfp, "field %d calloc failed.\n", f);
+            fprintf(cnvbcp->logfp, "field %d data calloc failed.\n", f);
             ret = CNVBCP_FAILURE;
          }
       }
@@ -1117,6 +1125,11 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
    size_t             b, f, r;
    CNVBCP_BUFFER     *buf = NULL;
    struct _cnv_dtetm  tm;
+   int     need_iconv = CNVBCP_FALSE;
+   iconv_t iconv_cd = 0;
+   size_t  chleft = 0,     wcleft = 0;
+   char   *chptr  = NULL, *wcptr  = NULL;
+
 
    // call bcp_bind() for each column that will be loaded
    for(b=0; ret == CNVBCP_SUCCESS && b<cnvbcp->nbuffers; b++)
@@ -1137,10 +1150,30 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
          fprintf(cnvbcp->logfp, "Error binding column %ld.\n", b);
          ret = CNVBCP_FAILURE;
       }
+
+      // while looping check to see if any columns are WCHAR and se a flag to initialize
+      // an iconv conversion descriptor
+      if(buf->source_type == DOP_WCHAR)
+      {
+         need_iconv = CNVBCP_TRUE;
+      }
+   }
+
+   if(ret == CNVBCP_SUCCESS &&
+      need_iconv == CNVBCP_TRUE)
+   {
+      // Allocate a "conversion descriptor" for converting WCHAR_T to UTF-8.
+      iconv_cd = iconv_open("UTF-8", "WCHAR_T");
+      if(iconv_cd == (iconv_t)-1)
+      {
+         printf("Unable to create conversion description!n");
+         ret = CNVBCP_FAILURE;
+      }
    }
 
    // seek to the location of the first row to send
-   if(cnvbcp->firstrow > 1)
+   if(ret == CNVBCP_SUCCESS &&
+      cnvbcp->firstrow > 1)
    {
       if(fseek(cnvbcp->datfp, ((cnvbcp->firstrow-1)*cnvbcp->rowsize), SEEK_SET) != 0)
       {
@@ -1150,7 +1183,8 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
    }
 
    // initialize the progress bar
-   if(cnvbcp->progressbar == CNVBCP_TRUE)
+   if(ret == CNVBCP_SUCCESS &&
+      cnvbcp->progressbar == CNVBCP_TRUE)
    {
       char header[128];
       sprintf(header, "Sending %ld rows...", (cnvbcp->lastrow - cnvbcp->firstrow + 1));
@@ -1185,7 +1219,7 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
             }
             continue;
          }
-         
+
          // get the right buffer for this field
          buf = &cnvbcp->buffer[cnvbcp->p->field[f].BUFFERNO];
 
@@ -1237,10 +1271,56 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
             }
             else
             {
-               if(fread(buf->data, 1, buf->length, cnvbcp->datfp) != buf->length)
+               if(buf->source_type == DOP_WCHAR)
                {
-                  fprintf(cnvbcp->logfp, "Error reading data at row %ld field %ld.\n", r, f);
-                  ret = CNVBCP_FAILURE;
+                  // make temporary use of the bad buffer to read the wide character data.  Since it is sized to
+                  // hold a whole record it is certainly sized to store this field
+                  if(fread(cnvbcp->badrow, 1, cnvbcp->p->field[f].length,  cnvbcp->datfp) != cnvbcp->p->field[f].length)
+                  {
+                     fprintf(cnvbcp->logfp, "Error reading data at row %ld field %ld.\n", r, f);
+                     ret = CNVBCP_FAILURE;
+                  }
+                  else
+                  {
+                     if(buf->is_nullable && nullindicator != 'N')
+                     {
+                        dlen = 0;
+                        buf->data[0] = '\0';
+                     }
+                     else
+                     {
+                        // convert the wide character data to a multibyte string in the actual data buffer to be sent to the DB
+                        wcptr  = (char *)cnvbcp->badrow;
+                        wcleft = cnvbcp->p->field[f].length;
+                        chptr  = (char *)buf->data;
+                        chleft = cnvbcp->p->field[f].length;
+                        if(iconv(iconv_cd, &wcptr, &wcleft, &chptr, &chleft) == -1)
+                        {
+                           fprintf(cnvbcp->logfp, "Error converting data at row %ld field %ld.\n", r, f);
+                           ret = CNVBCP_FAILURE;
+                        }
+
+                        // set the length of data to be sent to the DB
+                        dlen = cnvbcp->p->field[f].length - chleft;
+                     }
+
+                     // update the data length for this column
+                     if(ret == CNVBCP_SUCCESS &&
+                        bcp_collen(cnvbcp->dbproc, dlen, buf->column) == FAIL)
+                     {
+                        fprintf(cnvbcp->logfp, "Error setting data length at row %ld field %ld.\n", r, f);
+                        ret = CNVBCP_FAILURE;
+                     }
+                     length_already_set = CNVBCP_TRUE;
+                  }
+               }
+               else
+               {
+                  if(fread(buf->data, 1, buf->length, cnvbcp->datfp) != buf->length)
+                  {
+                     fprintf(cnvbcp->logfp, "Error reading data at row %ld field %ld.\n", r, f);
+                     ret = CNVBCP_FAILURE;
+                  }
                }
             }
             // printf("Read %s %d bytes [%c] \n", cnvbcp->p->field[b].name, buf->length, buf->is_nullable ? nullindicator : ' ');
@@ -1248,7 +1328,8 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
          }
 
          // hack the length if the column is nullable
-         if(buf->is_nullable && length_already_set == CNVBCP_FALSE)
+         if(ret == CNVBCP_SUCCESS &&
+            buf->is_nullable && length_already_set == CNVBCP_FALSE)
          {
             dlen = buf->dlen;
             if(nullindicator != 'N')
@@ -1264,7 +1345,8 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
          }
 
          // reformat date column if necessary
-         if(buf->date == CNVBCP_TRUE && nullindicator == 'N' && buf->format != NULL)
+         if(ret == CNVBCP_SUCCESS &&
+            buf->date == CNVBCP_TRUE && nullindicator == 'N' && buf->format != NULL)
          {
             buf->data[buf->length] = '\0';
             dte_strptime((const char *)buf->data, buf->format, &tm);
@@ -1273,7 +1355,8 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
       }
 
       // call bcp_sendrow to send the data to the DB
-      if(bcp_sendrow(cnvbcp->dbproc) == FAIL)
+      if(ret == CNVBCP_SUCCESS &&
+         bcp_sendrow(cnvbcp->dbproc) == FAIL)
       {
          // write the rejected record to the bad file if one was requested
          if(cnvbcp->badfile != NULL)
