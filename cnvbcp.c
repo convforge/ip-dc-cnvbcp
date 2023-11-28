@@ -1471,7 +1471,7 @@ after_write:
 
       // print final message
       rows_sent = r - cnvbcp->firstrow - cnvbcp->nbad;
-      fprintf(cnvbcp->logfp, "%ld rows successfully sent to database\n", rows_sent);
+      fprintf(cnvbcp->logfp, "%ld rows successfully sent to database", rows_sent);
       if(cnvbcp->nbad > 0)
          fprintf(cnvbcp->logfp, " %ld rows failed.", cnvbcp->nbad);
       fprintf(cnvbcp->logfp, "\n");
