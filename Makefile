@@ -115,3 +115,10 @@ install_scripts:
 uninstall_scripts:
 	@for script in $(SCRIPTS); do echo "$(RMF) $(INSTALLDIR)/$$script "; $(RMF) $(INSTALLDIR)/$$script ; done
 
+diff_scripts:
+	@for script in $(SCRIPTS); \
+		do echo "$$ diff ./$$script $(INSTALLDIR)/$$script"; \
+		diff ./$$script $(INSTALLDIR)/$$script; \
+		echo; \
+		ls -lt ./$$script $(INSTALLDIR)/$$script; \
+		done
