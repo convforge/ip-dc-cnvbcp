@@ -899,10 +899,10 @@ cnvbcp_create_buffers(CNVBCP *cnvbcp)
                cnvbcp->buffer[b].malloc_length = 28;
                cnvbcp->buffer[b].type = SYBCHAR;
                cnvbcp->buffer[b].plen = 0;
-               cnvbcp->buffer[b].dlen = 26;
+               cnvbcp->buffer[b].dlen = cnvbcp->buffer[b].length;
                if(cnvbcp->reformat_dates == CNVBCP_TRUE)
                {
-                  cnvbcp->buffer[b].dlen = 28;
+                  cnvbcp->buffer[b].dlen = cnvbcp->buffer[b].length;
                   cnvbcp->buffer[b].date = CNVBCP_TRUE;
                   if(strcmp(cnvbcp->p->field[f].format, "YYYYMMDDHH24MISS") == 0)
                      cnvbcp->buffer[b].format = strdup("%C%y%m%d%H%M%S");
@@ -1122,7 +1122,7 @@ cnvbcp_load_data(CNVBCP *cnvbcp)
    int                dlen, nullindicator;
    int                batchcount = 0;
    int                length_already_set = CNVBCP_FALSE;
-   size_t             b, f, r;
+   size_t             b, f, r, rows_sent;
    CNVBCP_BUFFER     *buf = NULL;
    struct _cnv_dtetm  tm;
    int     need_iconv = CNVBCP_FALSE;
@@ -1442,8 +1442,14 @@ after_write:
                // print status
                if(cnvbcp->verbose == CNVBCP_TRUE)
                {
-                  fprintf(cnvbcp->logfp, "%ld rows sent to database\n", (r - cnvbcp->firstrow + 1));
+                  rows_sent = r - cnvbcp->firstrow + 1 - cnvbcp->nbad;
+                  fprintf(cnvbcp->logfp, "%ld rows successfully sent to database", rows_sent);
+                  if(cnvbcp->nbad > 0)
+                     fprintf(cnvbcp->logfp, " %ld rows failed.", cnvbcp->nbad);
+                  fprintf(cnvbcp->logfp, "\n");
                   fflush(cnvbcp->logfp);
+                  if(cnvbcp->nbad > 0)
+                     ret = CNVBCP_FAILURE;
                }
             }
          }
@@ -1464,7 +1470,14 @@ after_write:
       }
 
       // print final message
-      fprintf(cnvbcp->logfp, "%ld rows sent to database\n", (r - cnvbcp->firstrow));
+      rows_sent = r - cnvbcp->firstrow - cnvbcp->nbad;
+      fprintf(cnvbcp->logfp, "%ld rows successfully sent to database\n", rows_sent);
+      if(cnvbcp->nbad > 0)
+         fprintf(cnvbcp->logfp, " %ld rows failed.", cnvbcp->nbad);
+      fprintf(cnvbcp->logfp, "\n");
+      fflush(cnvbcp->logfp);
+      if(cnvbcp->nbad > 0)
+         ret = CNVBCP_FAILURE;
    }
 
    return(ret);
