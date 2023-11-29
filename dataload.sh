@@ -112,7 +112,7 @@ start_table()
 		fi
 		loadend=$(date +%s)
 
-		typeset -R9 loaded=$(grep 'rows sent to database' ${logfile} | awk '{print $1}')
+		typeset -R9 loaded=$(grep 'rows successfully sent to database' ${logfile} | awk '{print $1}')
 #		typeset -R9 notloaded=$(grep 'not loaded due to errors' ${logfile} | awk '{print $1}')
 
 #		if [ ${notloaded} -ne 0 ]; then
