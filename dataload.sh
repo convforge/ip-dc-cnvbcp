@@ -166,7 +166,7 @@ trunc_table()
 		fi
 
 		#This is ok because schema return dbo.
-		cnvsqlcmd -Q "truncate table ${schema}[${1}];"
+		cnvsqlcmd -b -Q "truncate table ${schema}[${1}];"
 		trunc_table_status=$?
 	fi
 
