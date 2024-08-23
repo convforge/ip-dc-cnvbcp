@@ -1,5 +1,9 @@
 #!/bin/ksh
-
+trap cleanup_exit 0
+cleanup_exit()
+{
+	rm -f $sql_log
+}
 ###############################################################################
 # MODIFICATIONS LOG:                                                          #
 #-----------------------------------------------------------------------------#
@@ -8,7 +12,6 @@
 # 2023/03/15  d ragatz      Add functionality to run delete sql instead of    #
 #                           truncate table                                    #
 ###############################################################################
-
 
 print_usage ()
 {
@@ -45,38 +48,43 @@ start_table()
 
 	# make table name 32 characters (space padded)
 	typeset -L32 tblname=$1
+		
+	table="$1"
 	
 	# perform the load into the TO_PSWD database
 	if [ $3 = "-" ]; then
 		echo "SUCCESS: cnvbcp ${tblname}   skipped"
-	elif [ ! -f ${data}/$1.dat ]; then
-		echo "ERROR:   cnvbcp $1 ${logs}/$1.log"
-		echo "ERROR:   cnvbcp ${data}/${1}.dat does not exist" >> ${logs}/$1.log
+
+	elif [ ! -f ${data}/${table}.dat ]; then
+		echo "ERROR:   cnvbcp ${table} ${logs}/${table}.log"
+		echo "ERROR:   cnvbcp ${data}/${table}.dat does not exist" >> ${logs}/${table}.log
 		return 1
-	elif [ ${cmd_genctl_only} -eq 0 -a `/bin/ls -s ${data}/$1.dat 2>/dev/null|awk '{print $1}'` -eq 0 ]; then
+
+	elif [ ${cmd_genctl_only} -eq 0 -a $(/bin/ls -s ${data}/${table}.dat 2>/dev/null|awk '{print $1}') -eq 0 ]
+	then
 		typeset -R9 loaded="*0"
 		echo "SUCCESS: cnvbcp ${tblname} ${loaded} Rows loaded"
        
 		# truncate if desired
 		if [ $3 = "y" ]; then
-			echo trunc_table $1 $5 $7 > ${logs}/$1.dataload.log
-			trunc_table $1 $5 $7 >> ${logs}/$1.dataload.log 2>&1
+			echo trunc_table $table $5 $7 > ${logs}/${table}.dataload.log
+			trunc_table $table $5 $7 >> ${logs}/${table}.dataload.log 2>&1
 			if [ $? -ne 0 ]; then
-				echo "ERROR:   trunc_table ${5}.${1} ${7}, ${logs}/$1.dataload.log"
+				echo "ERROR:   trunc_table [${5}].[${table}] ${7}, ${logs}/${table}.dataload.log"
 				return 1
 			fi
 		fi
 	else
-		table="$1"
-		outfile="${outs}/$1.out"
-		datfile="${data}/$1.dat"
-		logfile="${logs}/$1.log"
-		badfile="${data}/$1.bad"
+		outfile="${outs}/${table}.out"
+		datfile="${data}/${table}.dat"
+		logfile="${logs}/${table}.log"
+		badfile="${data}/${table}.bad"
 		array_size="$2"
+
 		if [ $5 = "-" ]; then
 			schema=""
 		else
-			schema="-s ${5}"
+			schema="-s [${5}]"
 		fi
 
 		# if truncate flag is set, check for delete sql
@@ -85,9 +93,9 @@ start_table()
 				truncate="-x"
 			else
 				truncate=""
-				trunc_table $1 $5 $7
+				trunc_table $table $5 $7
 				if [ $? -ne 0 ]; then
-					echo "ERROR:   trunc_table ${5}.${1} ${7}, ${logs}/$1.dataload.log"
+					echo "ERROR:   trunc_table [${5}].[${table}] ${7}, ${logs}/${table}.dataload.log"
 					return 1
 				fi
 			fi
@@ -95,17 +103,17 @@ start_table()
 			truncate=""
 		fi
       
-		loadstart=`date +%s`
-		echo cnvbcp -t $table -d $datfile -o $outfile -l $logfile -b $badfile -B 20 -P -a $array_size $schema $truncate >> ${logs}/$1.dataload.log
-		cnvbcp -t $table -d $datfile -o $outfile -l $logfile -b $badfile -B 20 -P -a $array_size $schema $truncate >> ${logs}/$1.dataload.log 2>&1
+		loadstart=$(date +%s)
+		echo "cnvbcp -t [$table] -d $datfile -o $outfile -l $logfile -b $badfile -B 20 -P -a $array_size $schema $truncate" >> ${logs}/${table}.dataload.log
+		cnvbcp -t "[$table]" -d $datfile -o $outfile -l $logfile -b $badfile -B 20 -P -a $array_size "$schema" $truncate >> ${logs}/${table}.dataload.log 2>&1
 		if [ $? -ne 0 ]; then
-			echo "ERROR:   cnvbcp $1 ${logs}/$1.log"
+			echo "ERROR:   cnvbcp $table ${logs}/${table}.log"
 			return 1
 		fi
-		loadend=`date +%s`
+		loadend=$(date +%s)
 
-		typeset -R9 loaded=`grep 'rows sent to database' ${logfile} | awk '{print $1}'`
-#		typeset -R9 notloaded=`grep 'not loaded due to errors' ${logfile} | awk '{print $1}'`
+		typeset -R9 loaded=$(grep 'rows successfully sent to database' ${logfile} | awk '{print $1}')
+#		typeset -R9 notloaded=$(grep 'not loaded due to errors' ${logfile} | awk '{print $1}')
 
 #		if [ ${notloaded} -ne 0 ]; then
 #			echo "ERROR:   cnvbcp $1 ${logs}/$1.log"
@@ -117,8 +125,8 @@ start_table()
 	fi
 
 	if [ ${cmd_leave_tmp_files} -eq 0 ]; then
-		/bin/rm -f ${logs}/$1.dataload.log
-		/bin/rm -f ${logs}/$1.trunc
+		/bin/rm -f ${logs}/${table}.dataload.log
+		/bin/rm -f ${logs}/${table}.trunc
 	fi
 
 	return 0
@@ -131,14 +139,21 @@ start_table()
 #	$3 - SQL to delete table
 #
 ##############################################################################
-trunc_table ()
+trunc_table()
 {
 	# process delete table sql if it exists
 	if [[ $3 != "-" ]]; then
+
 		sql_file=${SYNPATH}/$3
-		if [[ -s $sql_file ]]; then
-			echo "cnvsqlcmd -b -e -i $sql_file -p"
-			cnvsqlcmd -b -e -i $sql_file -p
+		sql_log="$TMPDIR/${3}.log"
+
+		if [[ -s $sql_file ]]
+		then
+			echo "$ cnvsqlcmd -b -e -i $sql_file -p" > $sql_log
+			cnvsqlcmd -b -e -i $sql_file -p >> $sql_log
+			trunc_table_status=$?
+			cat $sql_log
+			rm -f $sql_log
 		else
 			echo "ERROR: sql file [$sql_file] doesn't exist or is empty"
 			return 1
@@ -147,14 +162,15 @@ trunc_table ()
 		if [ $2 = "-" ]; then
 			schema=""
 		else
-			schema=${2}.
+			schema="[${2}]."
 		fi
 
 		#This is ok because schema return dbo.
-		cnvsqlcmd -Q "truncate table ${schema}${1};"
+		cnvsqlcmd -b -Q "truncate table ${schema}[${1}];"
+		trunc_table_status=$?
 	fi
 
-	trunc_table_status=$?
+	#trunc_table_status=$?
 	if [ $trunc_table_status -ne 0 ]; then
 	   echo ERROR:   error running SQL statement 
 	   return $trunc_table_status
