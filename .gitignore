@@ -40,3 +40,7 @@ aim.cfg
 
 # Vim files
 #*.sw?
+
+.gradle
+build
+!gradlew
