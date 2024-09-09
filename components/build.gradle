@@ -1,0 +1,37 @@
+plugins {
+    id 'cpp-application'
+    id 'cpp-unit-test'
+    id 'maven-publish'
+    id ("com.netflix.nebula.rpm") version "11.9.1"
+    id "org.ysb33r.doxygen" version "1.0.3"
+}
+
+group = 'com.gwt.conversion'
+version = '1.0.0'
+
+repositories {
+    mavenLocal()
+}
+
+dependencies {
+    // implementation 'com.gwt.conversion:freetds:1.0.0'
+    implementation 'com.gwt.conversion:progressbar:1.0.0'
+    implementation 'com.gwt.conversion:DOParser:1.0.0'
+    implementation 'com.gwt.conversion:cnvdate:1.0.0'
+}
+
+ext {
+    sources = fileTree(dir: ".", include: "**/*.c")
+    rpmBinaries = fileTree(dir: 'build/exe/main/release', include: "*")
+    extraLibraries = [ "-L/opt/conv/lib", "-lct", "-lsybdb" ] as ArrayList
+    doxygenSources = fileTree(dir: ".", include: "**/*.h")
+}
+
+apply from: "${System.getenv('CONV_ETC')}/build/gradle/build.gradle.binary"
+
+tasks.withType(Rpm).configureEach {
+    requires('ncurses')
+    requires('conversion-preinstall')
+    requires('DOParser')
+    requires('mfl')
+}
