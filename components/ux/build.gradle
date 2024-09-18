@@ -6,7 +6,7 @@ plugins {
     id "org.ysb33r.doxygen" version "1.0.3"
 }
 
-group = 'com.gwt.conversion'
+group = 'com.gwt.ipdc'
 version = '1.0.0'
 
 repositories {
@@ -15,9 +15,9 @@ repositories {
 
 dependencies {
     // implementation 'com.gwt.conversion:freetds:1.0.0'
-    implementation 'com.gwt.conversion:progressbar:1.0.0'
-    implementation 'com.gwt.conversion:DOParser:1.0.0'
-    implementation 'com.gwt.conversion:cnvdate:1.0.0'
+    implementation 'com.gwt.ipdc:ip-dc-progressbar:1.0.0'
+    implementation 'com.gwt.ipdc:ip-dc-DOParser:1.0.0'
+    implementation 'com.gwt.ipdc:ip-dc-cnvdate:1.0.0'
 }
 
 ext {
@@ -31,7 +31,7 @@ apply from: "${System.getenv('CONV_ETC')}/build/gradle/build.gradle.binary"
 
 tasks.withType(Rpm).configureEach {
     requires('ncurses')
-    requires('conversion-preinstall')
-    requires('DOParser')
-    requires('mfl')
+    requires('ip-dc-conversion-preinstall')
+    requires('ip-dc-DOParser')
+    requires('ip-dc-mfl')
 }
