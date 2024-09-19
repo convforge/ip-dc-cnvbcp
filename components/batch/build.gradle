@@ -15,9 +15,9 @@ repositories {
 
 dependencies {
     // implementation 'com.gwt.conversion:freetds:1.0.0'
-    implementation 'com.gwt.ipdc:ip-dc-progressbar:1.0.0'
-    implementation 'com.gwt.ipdc:ip-dc-DOParser:1.0.0'
-    implementation 'com.gwt.ipdc:ip-dc-cnvdate:1.0.0'
+    implementation 'com.gwt.ipdc:progressbar:1.0.0'
+    implementation 'com.gwt.ipdc:DOParser:1.0.0'
+    implementation 'com.gwt.ipdc:cnvdate:1.0.0'
 }
 
 ext {
