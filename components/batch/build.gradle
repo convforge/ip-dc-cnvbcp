@@ -22,7 +22,10 @@ dependencies {
 
 ext {
     sources = fileTree(dir: ".", include: "**/*.c")
-    rpmBinaries = fileTree(dir: 'build/exe/main/release', include: "*")
+    rpmBinaries = [ 
+        fileTree(dir: 'build/exe/main/release', include: "*"),
+        fileTree(dir: '.', include: 'cnvbcp_dataload.sh')
+    ]
     extraLibraries = [ "-L/opt/conv/lib", "-lct", "-lsybdb" ] as ArrayList
     doxygenSources = fileTree(dir: ".", include: "**/*.h")
 }
@@ -34,4 +37,6 @@ tasks.withType(Rpm).configureEach {
     requires('ip-dc-conversion-preinstall')
     requires('ip-dc-DOParser')
     requires('ip-dc-mfl')
+
+    link("/opt/conv/bin/dataload.sh", "/opt/conv/bin/cnvbcp_dataload.sh") // should be determined by environment?  set up "alternatives" type of thing?
 }
