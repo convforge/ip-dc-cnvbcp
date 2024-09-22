@@ -7,7 +7,7 @@ include /usr/local/conv/etc/make/conv_defaults.mak
 # you must define at least one of these two macros.  
 # C_SRCS=    (for .c files)
 # SC_SRCS=   (for .sc files)
-C_SRCS=cnvbcp.c
+C_SRCS=src/main/c/cnvbcp.c
 
 ###################################################################
 # add any additional files you want to check as dependecies that

@@ -15,18 +15,19 @@ repositories {
 
 dependencies {
     // implementation 'com.gwt.conversion:freetds:1.0.0'
-    // implementation 'com.gwt.ipdc:progressbar:1.0.0'
-    // implementation 'com.gwt.ipdc:DOParser:1.0.0'
-    // implementation 'com.gwt.ipdc:cnvdate:1.0.0'
+    implementation 'com.gwt.ipdc:progressbar:1.0.0'
+    implementation 'com.gwt.ipdc:DOParser:1.0.0'
+    implementation 'com.gwt.ipdc:cnvdate:1.0.0'
 }
 
 ext {
-    sources = fileTree(dir: ".", include: "**/*.c")
+    sources = fileTree(dir: "src/main/c", include: "*.c")
     rpmBinaries = [
         fileTree(dir: 'build/exe/main/release', include: "*"),
-        fileTree(dir: '.', include: 'cnvbcp_dataload.sh')
+        fileTree(dir: 'src/main/bin', include: 'cnvbcp_dataload.sh')
     ]
-    extraLibraries = [ "-I/opt/conv/include", "-L/opt/conv/lib", "-lct", "-lsybdb", "-lprogressbar", "-lDOParser", "-lcnvdate" ] as ArrayList
+    rpmEtc = fileTree(dir: 'src/main/etc', include: "*")
+    extraLibraries = [ "-L/opt/conv/lib", "-lct", "-lsybdb" ] as ArrayList
     doxygenSources = fileTree(dir: ".", include: "**/*.h")
 }
 
