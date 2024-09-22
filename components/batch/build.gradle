@@ -15,18 +15,18 @@ repositories {
 
 dependencies {
     // implementation 'com.gwt.conversion:freetds:1.0.0'
-    implementation 'com.gwt.ipdc:progressbar:1.0.0'
-    implementation 'com.gwt.ipdc:DOParser:1.0.0'
-    implementation 'com.gwt.ipdc:cnvdate:1.0.0'
+    // implementation 'com.gwt.ipdc:progressbar:1.0.0'
+    // implementation 'com.gwt.ipdc:DOParser:1.0.0'
+    // implementation 'com.gwt.ipdc:cnvdate:1.0.0'
 }
 
 ext {
     sources = fileTree(dir: ".", include: "**/*.c")
-    rpmBinaries = [ 
+    rpmBinaries = [
         fileTree(dir: 'build/exe/main/release', include: "*"),
         fileTree(dir: '.', include: 'cnvbcp_dataload.sh')
     ]
-    extraLibraries = [ "-L/opt/conv/lib", "-lct", "-lsybdb" ] as ArrayList
+    extraLibraries = [ "-I/opt/conv/include", "-L/opt/conv/lib", "-lct", "-lsybdb", "-lprogressbar", "-lDOParser", "-lcnvdate" ] as ArrayList
     doxygenSources = fileTree(dir: ".", include: "**/*.h")
 }
 
@@ -35,6 +35,7 @@ apply from: "${System.getenv('CONV_ETC')}/build/gradle/build.gradle.binary"
 tasks.withType(Rpm).configureEach {
     requires('ncurses')
     requires('ip-dc-conversion-preinstall')
+    requires('ip-dc-freetds')
     requires('ip-dc-DOParser')
     requires('ip-dc-mfl')
 
